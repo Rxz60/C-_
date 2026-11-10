@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050b1d">
+  <title>MRX Code Scanner</title>
+  <link rel="stylesheet" href="mrx.css">
+</head>
+<body>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <header class="topbar">
+    <a class="brand-mark" href="#" aria-label="MRX home"><span class="brand-cube">M</span></a>
+    <div class="top-actions">
+      <span class="top-chip"><i class="live-dot"></i> LOCAL SCANNER</span>
+      <a class="github-link" href="https://github.com/" target="_blank" rel="noreferrer" aria-label="GitHub">GH</a>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="app-window">
+      <div class="window-head">
+        <div class="brand">
+          <div class="crown-icon" aria-hidden="true">♛</div>
+          <div><div class="brand-name">MRX</div><div class="brand-sub">CODE INTELLIGENCE</div></div>
+        </div>
+        <div class="window-controls"><span></span><span></span><span></span></div>
+      </div>
+
+      <div class="workspace">
+        <aside class="sidebar">
+          <button class="nav-item active" data-tab="scanner"><span class="nav-icon">⌘</span><span>Scanner</span></button>
+          <button class="nav-item" data-tab="home"><span class="nav-icon">⌂</span><span>Overview</span></button>
+          <button class="nav-item" data-tab="settings"><span class="nav-icon">⚙</span><span>Settings</span></button>
+          <button class="nav-item" data-tab="about"><span class="nav-icon">ⓘ</span><span>About</span></button>
+          <div class="side-foot"><span class="shield-mini">⬡</span><span>SAFE MODE<br><b>ENABLED</b></span></div>
+        </aside>
+
+        <section class="main-panel" id="scannerPanel">
+          <div class="section-heading">
+            <div class="heading-icon">⌁</div>
+            <div><h1>Code Scanner</h1><p>Analyze source code and inspect uploaded files</p></div>
+            <span class="version">MRX v1.0</span>
+          </div>
+
+          <div class="toolbar">
+            <label class="select-wrap"><span>LANGUAGE</span>
+              <select id="language">
+                <option value="auto">Auto detect</option>
+                <option>JavaScript</option><option>TypeScript</option><option>Python</option>
+                <option>Lua</option><option>HTML</option><option>CSS</option><option>JSON</option>
+                <option>Java</option><option>C</option><option>C++</option><option>C#</option>
+                <option>PHP</option><option>Ruby</option><option>Go</option><option>Rust</option>
+                <option>Shell</option><option>SQL</option><option>Unknown</option>
+              </select>
+            </label>
+            <label class="file-button" for="fileInput"><span class="upload-icon">↥</span> Upload file</label>
+            <input id="fileInput" type="file" hidden>
+            <span class="file-name" id="fileName">No file selected</span>
+          </div>
+
+          <div class="editor-wrap">
+            <div class="editor-top"><div class="editor-label"><span class="code-symbol">&lt;/&gt;</span> SOURCE CODE</div><span id="lineCount">LINE 1</span></div>
+            <div class="editor">
+              <div class="line-numbers" id="lineNumbers">1</div>
+              <textarea id="codeInput" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="-- Paste your code here or upload a file..."></textarea>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button class="action-btn" id="clearBtn"><span>⌫</span> Clear</button>
+            <button class="action-btn" id="copyBtn"><span>▢</span> Copy</button>
+            <button class="scan-btn" id="scanBtn"><span>➤</span> Scan code</button>
+          </div>
+
+          <section class="results" id="results">
+            <div class="results-head"><div><h2>Scan results</h2><p id="resultSummary">Your analysis report will appear here.</p></div><div class="status-pill idle" id="statusPill"><i></i> WAITING</div></div>
+            <div class="score-grid">
+              <div class="score-card"><span class="metric-icon blue">⌕</span><div><strong id="issueCount">0</strong><small>Findings</small></div></div>
+              <div class="score-card"><span class="metric-icon green">✓</span><div><strong id="safeCount">0</strong><small>Checks passed</small></div></div>
+              <div class="score-card"><span class="metric-icon purple">⌗</span><div><strong id="lineTotal">0</strong><small>Lines scanned</small></div></div>
+            </div>
+            <div class="findings" id="findings"><div class="empty-state"><span>⌁</span><b>Ready when you are</b><small>Paste code or choose a file, then press Scan code.</small></div></div>
+          </section>
+          <footer class="panel-footer"><span><i class="live-dot"></i> Analysis runs in your browser</span><span>MRX SECURITY LABS</span></footer>
+        </section>
+
+        <section class="info-panel hidden" id="infoPanel">
+          <div class="section-heading"><div class="heading-icon">✦</div><div><h1 id="infoTitle">Overview</h1><p id="infoSubtitle">Your code inspection workspace</p></div></div>
+          <div class="info-card"><div class="info-symbol">⬡</div><h2 id="infoCardTitle">Welcome to MRX</h2><p id="infoText">Inspect source code for common mistakes and suspicious patterns. Analysis happens locally in this browser.</p></div>
+          <button class="scan-btn back-btn" id="backBtn">Open scanner <span>→</span></button>
+        </section>
+      </div>
+    </section>
+    <div class="below-note"><span>◆</span> MRX CODE SCANNER <span class="muted">/</span> PRIVATE LOCAL ANALYSIS</div>
+  </main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const code = $('codeInput'), language = $('language');
+  const fileInput = $('fileInput');
+  let selectedFile = null;
+
+  const extensions = {
+    js:'JavaScript', mjs:'JavaScript', cjs:'JavaScript', jsx:'JavaScript',
+    ts:'TypeScript', tsx:'TypeScript', py:'Python', lua:'Lua', html:'HTML',
+    htm:'HTML', css:'CSS', json:'JSON', java:'Java', c:'C', h:'C',
+    cpp:'C++', cc:'C++', hpp:'C++', cs:'C#', php:'PHP', rb:'Ruby',
+    go:'Go', rs:'Rust', sh:'Shell', bash:'Shell', sql:'SQL'
+  };
+
+  function detectLanguage(text, filename='') {
+    const ext = filename.split('.').pop().toLowerCase();
+    if (extensions[ext]) return extensions[ext];
+    const t = text.slice(0, 5000);
+    if (/^\s*<!doctype html|<html[\s>]/i.test(t)) return 'HTML';
+    if (/\b(local\s+function|local\s+\w+\s*=|game:GetService)\b/.test(t)) return 'Lua';
+    if (/\b(def\s+\w+\s*\(|import\s+\w+|print\s*\()/.test(t)) return 'Python';
+    if (/\b(const|let|function|=>)\b/.test(t)) return 'JavaScript';
+    if (/^\s*[\[{]/.test(t)) { try { JSON.parse(t); return 'JSON'; } catch {} }
+    return 'Unknown';
+  }
+
+  function updateLines() {
+    const count = Math.max(1, code.value.split('\n').length);
+    $('lineNumbers').textContent = Array.from({length:count}, (_,i)=>i+1).join('\n');
+    $('lineCount').textContent = `LINE ${count}`;
+  }
+  code.addEventListener('input', updateLines);
+  code.addEventListener('scroll', () => $('lineNumbers').scrollTop = code.scrollTop);
+  updateLines();
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showNotice('File is larger than the 5 MB limit.', 'warning');
+      fileInput.value = '';
+      return;
+    }
+    try {
+      code.value = await file.text();
+      selectedFile = file.name;
+      $('fileName').textContent = file.name;
+      if (language.value === 'auto') language.dataset.detected = detectLanguage(code.value, file.name);
+      updateLines();
+      showNotice('File loaded locally and ready to scan.', 'success');
+    } catch {
+      showNotice('This file could not be read as text.', 'warning');
+    }
+  });
+
+  function showNotice(message, type) {
+    $('resultSummary').textContent = message;
+    $('statusPill').className = `status-pill ${type}`;
+    $('statusPill').innerHTML = `<i></i> ${type.toUpperCase()}`;
+  }
+
+  function scanSource(source, lang) {
+    const findings = [];
+    const lines = source.split('\n');
+    const add = (severity, title, detail, line) => findings.push({severity,title,detail,line});
+    const patterns = [
+      {re:/\beval\s*\(/i, severity:'warning', title:'Dynamic code evaluation', detail:'eval() can execute generated text as code. Review the input source and avoid evaluating untrusted data.'},
+      {re:/\b(new\s+Function|Function\s*\()/i, severity:'warning', title:'Dynamic function construction', detail:'Dynamically creating executable functions can make code harder to audit.'},
+      {re:/\b(child_process|subprocess|os\.system|execSync|shell_exec|system\s*\()/i, severity:'warning', title:'System command execution', detail:'This code may invoke operating-system commands. Verify that arguments are trusted and safely handled.'},
+      {re:/\b(document\.write|innerHTML\s*=)/i, severity:'info', title:'HTML injection surface', detail:'Writing raw HTML can introduce injection risks when the content is not trusted or sanitized.'},
+      {re:/\b(password|passwd|api[_-]?key|secret|access[_-]?token)\s*[:=]\s*['"][^'"]{5,}['"]/i, severity:'warning', title:'Possible hard-coded secret', detail:'A value resembling a credential is assigned directly in source. Use a secure secret store and rotate exposed credentials.'},
+      {re:/https?:\/\/[^\s'"`]+/i, severity:'info', title:'External URL found', detail:'The source contains an external URL. Confirm that the destination is expected and trusted.'},
+      {re:/\b(base64_decode|atob)\s*\(/i, severity:'info', title:'Encoded data decoding', detail:'Encoded data is decoded at runtime. Check what the decoded content is used for.'},
+      {re:/\b(rm\s+-rf\s+\/|format\s+c:|shutdown\s+-[rfs])/i, severity:'critical', title:'Potentially destructive command', detail:'A command resembling a destructive system operation was found. Do not run it unless its purpose is fully understood.'},
+      {re:/\b(https?:\/\/[^ \n]+(\/raw\/|\.ps1)|Invoke-WebRequest|DownloadString)\b/i, severity:'warning', title:'Remote content retrieval', detail:'The source may retrieve remote content. Verify the origin and inspect downloaded content before use.'}
+    ];
+    lines.forEach((line, i) => patterns.forEach(p => { if (p.re.test(line)) add(p.severity,p.title,p.detail,i+1); }));
+
+    const openers = {'(':')','[':']','{':'}'};
+    const stack = [];
+    let quote = null, escaped = false, lineNo = 1, commentLine = false;
+    for (let i=0; i<source.length; i++) {
+      const ch = source[i], next = source[i+1];
+      if (ch === '\n') { lineNo++; commentLine = false; continue; }
+      if (commentLine) continue;
+      if (quote) {
+        if (escaped) { escaped = false; continue; }
+        if (ch === '\\') { escaped = true; continue; }
+        if (ch === quote) quote = null;
+        continue;
+      }
+      if ((ch === '"' || ch === "'" || ch === '`')) { quote = ch; continue; }
+      if ((ch === '/' && next === '/') || (ch === '-' && next === '-')) { commentLine = true; i++; continue; }
+      if (openers[ch]) stack.push({ch,line:lineNo});
+      else if (Object.values(openers).includes(ch)) {
+        const last = stack.pop();
+        if (!last || openers[last.ch] !== ch) add('warning','Possible unmatched bracket',`A closing "${ch}" does not appear to match the previous opening bracket.`,lineNo);
+      }
+    }
+    stack.forEach(item => add('warning','Unclosed bracket',`The opening "${item.ch}" may be missing a matching closing bracket.`,item.line));
+
+    if (lang === 'JSON' && source.trim()) {
+      try { JSON.parse(source); }
+      catch (e) { add('critical','Invalid JSON',e.message,1); }
+    }
+    if (lang === 'HTML' && /<script\b[^>]*>[\s\S]*?<\/script>/i.test(source)) {
+      add('info','Embedded JavaScript found','This HTML file contains an inline script. Review the script separately for expected behavior.',1);
+    }
+    if (!source.trim()) add('info','No source code','Add code or upload a text-based source file to begin analysis.',1);
+
+    const unique = [];
+    const seen = new Set();
+    findings.forEach(f => {
+      const key = `${f.severity}|${f.title}|${f.line}`;
+      if (!seen.has(key)) { seen.add(key); unique.push(f); }
+    });
+    return unique;
+  }
+
+  function renderFindings(items) {
+    const host = $('findings');
+    host.innerHTML = '';
+    if (!items.length) {
+      host.innerHTML = '<div class="empty-state clean"><span>✓</span><b>No common issues detected</b><small>This lightweight scan found no matches in its current rule set. It cannot guarantee that code is safe.</small></div>';
+      return;
+    }
+    items.forEach(item => {
+      const el = document.createElement('article');
+      el.className = `finding ${item.severity}`;
+      const icon = item.severity === 'critical' ? '!' : item.severity === 'warning' ? '△' : 'i';
+      const top = document.createElement('div'); top.className = 'finding-top';
+      const mark = document.createElement('span'); mark.className = 'finding-mark'; mark.textContent = icon;
+      const title = document.createElement('b'); title.textContent = item.title;
+      const tag = document.createElement('span'); tag.className = 'severity-tag'; tag.textContent = item.severity;
+      const line = document.createElement('span'); line.className = 'line-tag'; line.textContent = `LINE ${item.line}`;
+      top.append(mark,title,tag,line);
+      const detail = document.createElement('p'); detail.textContent = item.detail;
+      el.append(top,detail); host.append(el);
+    });
+  }
+
+  $('scanBtn').addEventListener('click', () => {
+    const source = code.value;
+    const lang = language.value === 'auto' ? (language.dataset.detected || detectLanguage(source, selectedFile || '')) : language.value;
+    $('scanBtn').classList.add('scanning');
+    $('scanBtn').innerHTML = '<span class="spinner"></span> Analyzing...';
+    $('statusPill').className = 'status-pill running';
+    $('statusPill').innerHTML = '<i></i> SCANNING';
+    window.setTimeout(() => {
+      const findings = scanSource(source, lang);
+      const critical = findings.filter(x=>x.severity==='critical').length;
+      const warnings = findings.filter(x=>x.severity==='warning').length;
+      $('issueCount').textContent = findings.length;
+      $('safeCount').textContent = Math.max(0, 5 - Math.min(5, findings.length));
+      $('lineTotal').textContent = source ? source.split('\n').length : 0;
+      $('resultSummary').textContent = `${lang} · ${findings.length} finding(s) · ${critical} critical · ${warnings} warning(s)`;
+      $('statusPill').className = `status-pill ${critical ? 'danger' : warnings ? 'warning' : 'success'}`;
+      $('statusPill').innerHTML = `<i></i> ${critical ? 'REVIEW NEEDED' : warnings ? 'CHECK WARNINGS' : 'SCAN COMPLETE'}`;
+      renderFindings(findings);
+      $('scanBtn').classList.remove('scanning');
+      $('scanBtn').innerHTML = '<span>➤</span> Scan code';
+    }, 350);
+  });
+
+  $('clearBtn').addEventListener('click', () => {
+    code.value = ''; selectedFile = null; fileInput.value = '';
+    $('fileName').textContent = 'No file selected'; delete language.dataset.detected;
+    $('issueCount').textContent = '0'; $('safeCount').textContent = '0'; $('lineTotal').textContent = '0';
+    $('resultSummary').textContent = 'Your analysis report will appear here.';
+    $('statusPill').className = 'status-pill idle'; $('statusPill').innerHTML = '<i></i> WAITING';
+    $('findings').innerHTML = '<div class="empty-state"><span>⌁</span><b>Ready when you are</b><small>Paste code or choose a file, then press Scan code.</small></div>';
+    updateLines();
+  });
+  $('copyBtn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(code.value);
+      $('copyBtn').innerHTML = '<span>✓</span> Copied';
+      setTimeout(() => $('copyBtn').innerHTML = '<span>▢</span> Copy', 1200);
+    } catch { $('resultSummary').textContent = 'Clipboard access is unavailable in this browser.'; }
+  });
+
+  const pages = {
+    home:['Overview','Your code inspection workspace','MRX scanner overview','A lightweight source-code review tool. Paste code or upload a text file, select a language, and inspect the findings.'],
+    settings:['Settings','Scanner preferences','Privacy first','Files are read in your browser and are not uploaded by this page. The scanner does not execute source code. The maximum upload size is 5 MB.'],
+    about:['About MRX','Code intelligence interface','About this scanner','MRX performs basic static pattern checks and a few lightweight format checks. It does not support full compiler diagnostics, malware certification, or complete analysis of every programming language.']
+  };
+  document.querySelectorAll('.nav-item').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active');
+    const key = btn.dataset.tab;
+    if (key === 'scanner') {
+      $('scannerPanel').classList.remove('hidden'); $('infoPanel').classList.add('hidden'); return;
+    }
+    const p = pages[key];
+    $('infoTitle').textContent=p[0]; $('infoSubtitle').textContent=p[1];
+    $('infoCardTitle').textContent=p[2]; $('infoText').textContent=p[3];
+    $('scannerPanel').classList.add('hidden'); $('infoPanel').classList.remove('hidden');
+  }));
+  $('backBtn').addEventListener('click', () => document.querySelector('[data-tab="scanner"]').click());
+})();
+</script>
+</body>
+</html>
